@@ -91,4 +91,34 @@ If you are still receiving the same error, try the following steps.
 
 Rerun `catkin build esim_ros`. The installation should succeed. 
 
+Make an alias for the workspace so you can source it easily:
+
+```
+echo "source ~/sim_ws/devel/setup.bash" >> ~/setupeventsim.sh
+chmod +x ~/setupeventsim.sh
+```
+
+In your `.bashrc` file, add the following line: `alias ssim='source ~/setupeventsim.sh'`. Now, whenever you type `ssim` into your terminal this will initialize the simulator workspace. You need to run `bash` first if you are staying the same terminal after editing the `.bashrc` file. 
+
 ### Running ESIM
+
+This set of instructions uses the Planar Renderer. You may choose to use another renderer. Run the following commands for Planar Renderer:
+
+```
+roscd esim_ros
+roslaunch esim_ros esim.launch config:=cfg/example.conf
+```
+
+To visualize the output of the simulator, open `rviz` with a new terminal window:
+
+```
+roscd esim_visualization
+rviz -d cfg/esim.rviz
+```
+
+You can also use `rqt`:
+
+```
+roscd esim_visualization
+rqt --perspective-file cfg/esim.perspective
+```
