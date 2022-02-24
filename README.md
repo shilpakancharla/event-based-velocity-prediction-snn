@@ -1,5 +1,72 @@
 # Motion Segmentation with Spiking Neural Networks (SNNs)
 
+## Run Videos in ESIM
+
+### Download the video
+
+These instructions are taken from the [ESIM tutorial](https://github.com/uzh-rpg/rpg_esim/wiki/Simulating-events-from-a-video).
+
+Steps to get started creating simulated event camera video data:
+
+1. Create a working folder:
+
+```
+mkdir -p workspace/<project name>/
+cd workspace/<project name>/
+```
+
+2. Download video from YouTube:
+
+```
+youtube-dl <video URL> -o <name>
+```
+
+3. Cut relevant part of video:
+
+```
+ffmpeg -i <video name>.mkv -ss <start timestamp> -t <end timestamp> -async 1 -strict -2 <cut video name>.mkv
+```
+
+### Pre-process video for ESIM
+
+1. Export video to `frames` folder:
+
+```
+mkdir frames
+ffmpeg -i <cut video name>.mkv frames/frames_%010d.png
+```
+
+2. Create `images.csv` in the `frames` folder, which is necessary for ESIM. Each line of this file contains the image timestamp and path in the format `timestamp_in_nanoseconds,frames_xxxxx.png` (:
+
+```
+ssim
+roscd esim_ros
+python scripts/generate_stamps_file.py -i /workspace/<project name>/frames -r 1200.0
+```
+
+3. Open a new terminal and run `roscore`. Go back to your other terminal and run:
+
+```
+rosrun esim_ros esim_node \
+ --data_source=2 \
+ --path_to_output_bag=/tmp/out.bag \
+ --path_to_data_folder=/tmp/cheetah_example/frames \
+ --ros_publisher_frame_rate=60 \
+ --exposure_time_ms=10.0 \
+ --use_log_image=1 \
+ --log_eps=0.1 \
+ --contrast_threshold_pos=0.15 \
+ --contrast_threshold_neg=0.15
+```
+
+4. Open a new terminal to visualize simulated event data. Every time you open a new terminal, run `ssim`. Start the `dvs_renderer`:
+
+```
+rosrun dvs_renderer dvs_renderer events:=/cam0/events
+```
+
+5. You can now visualize this by opening a new terminal and running `rqt_image_view /dvs_rendering`.
+ 
 ## Open Event Camera Simulation (ESIM) with ROS Noetic (Ubuntu 20.04) and Python 3
 
 These are installation instructions to run the ESIM on ROS Noetic on Ubuntu 20.04 with Python 3. Previous versions of working ESIM programs have been run with ROS Kinetic on Ubuntu 16.04 and ROS Melodic on Ubuntu 18.04. Credit to ESIM belongs to the [Robotics and Perception Group at the University of Zurich](https://rpg.ifi.uzh.ch/index.html). Here is the [original paper](https://rpg.ifi.uzh.ch/docs/CORL18_Rebecq.pdf) about the event camera simulator as well. These instructions were created from the original instructions given on [ESIM's Wiki](https://github.com/uzh-rpg/rpg_esim/wiki/installation) but adapted to suit ROS Noetic. Note that some of the issues may not be reproducible, and further issues faced should be documented on the Issues section of the is repository or on the Issues section of the [ESIM repository](https://github.com/uzh-rpg/rpg_esim).
