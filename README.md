@@ -50,7 +50,7 @@ python scripts/generate_stamps_file.py -i /workspace/<project name>/frames -r 12
 rosrun esim_ros esim_node \
  --data_source=2 \
  --path_to_output_bag=/tmp/out.bag \
- --path_to_data_folder=/tmp/cheetah_example/frames \
+ --path_to_data_folder=<path_to_folder> \
  --ros_publisher_frame_rate=60 \
  --exposure_time_ms=10.0 \
  --use_log_image=1 \
