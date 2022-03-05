@@ -10,7 +10,9 @@ The bash script `event_simulation.sh` is provided to automate the event camera s
 4. How much time from start of video you should trim
 5. Name of video
 
-Example of running script: `event_simulation.sh "workspace/dataset/" "www.youtube.com/<some url>" "00:00:00" "00:00:40" "wand_1"`
+Example of running script: 
+
+`event_simulation.sh "workspace/dataset/" "www.youtube.com/<some url>" "00:00:00" "00:00:40" "wand_1"`
 
 ## Run Videos in ESIM Manually
 
