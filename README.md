@@ -1,6 +1,17 @@
 # Motion Segmentation with Spiking Neural Networks (SNNs)
 
-## Run Videos in ESIM
+## Preparing Data with ESIM
+
+The bash script `event_simulation.sh` is provided to automate the event camera simulation, and gather the simulation data by topic from the output rosbag. You need the ESIM software set up, `youtube-dl`, and `ffmpeg` all on your Linux system. The following parameters required to run this bash script are:
+
+1. Workspace directory
+2. Video URL
+3. Start time of video
+4. How much time from start of video you should trim
+5. Name of video
+6. 
+
+## Run Videos in ESIM Manually
 
 ### Download the video
 
