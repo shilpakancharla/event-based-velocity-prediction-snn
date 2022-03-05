@@ -1,9 +1,12 @@
 import os
 import cv2
 import yaml
+import bagpy
 import rosbag
 import subprocess
 import numpy as np
+import pandas as pd 
+from bagpy import bagreader
 from cv_bridge import CvBridge
 
 """
@@ -43,7 +46,7 @@ def parse_events(event):
   secs = []
   nsecs = []
   polarity = []
-  tokens = event.splitlines()
+  tokens = event.splitlines();
   for t in tokens:
     if 'x: ' in t:
       temp_t = t
@@ -59,7 +62,7 @@ def parse_events(event):
       temp_t = t
       temp_t = temp_t.replace('y: ', '')
       y.append(int(temp_t))
-    elif 'secs: ' in t and t[0] == 's':
+    elif 'secs: ' in t and 'n' not in t:
       temp_t = t
       temp_t = temp_t.replace('secs: ', '')
       secs.append(int(temp_t))
@@ -75,8 +78,37 @@ def parse_events(event):
         polarity.append(False)    
   return x, y, secs, nsecs, polarity
 
-if __name__ == '__main__':
-    FILENAME = "people_dynamic_air_guitar"
-    TOPIC = "/dvs/image_raw"
-    DEST = "images/"
-    bag_to_png(FILENAME, TOPIC, DEST)
+"""
+    Unpacks the rosbag and returns a .csv file of a particular topic.
+
+    @param rosbag_path: where the rosbag is located
+    @param topic: name of topic data to convert to .csv
+    @return name of topic
+    @return dataframe with topic contents
+"""
+def unpack_rosbag(rosbag_path, topic_type):
+  bag_reader_obj = bagreader(rosbag_path)
+  # Output the topic table for reference
+  print(bag_reader_obj.topic_table)
+  # Decode messages by topic - run if you do not have the csv files saved already
+  print("Creating .csv file.")
+  topic = bag_reader_obj.message_by_topic(topic_type)
+  print("File saved: {}".format(topic))
+  # Create dataframe from the topic
+  df = pd.read_csv(topic)
+  return topic, df
+
+"""
+    Converting times within rosbag to human-readable seconds and aligning it with rosbag dataframe.
+
+    @param df: Pandas dataframe of topic information
+    @param time_series: column of time in dataframe
+"""
+def convert_rosbag_timestamps(df, time_series):
+  new_times = []
+  init = df['Time'][0]
+  for time_ in time_series:
+    new_time = time_ - init
+    new_times.append(new_time)
+  # Append the series to the dataframe
+  df['New Time'] = np.array(new_times).tolist()
