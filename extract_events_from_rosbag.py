@@ -1,5 +1,6 @@
 import os
 import sys
+import tqdm
 import rospy
 import rosbag
 import shutil
@@ -38,7 +39,8 @@ if __name__ == "__main__":
             total_num_event_msgs = 0
             topics = bag.get_type_and_topic_info().topics
             for topic_name, topic_info in topics.items():
-                total_num_event_msgs = topic_info.message_count
+                if topic_name == '/cam0/events':
+                    total_num_event_msgs = topic_info.message_count # Set the total number of messages here
                 print("{} has {} messages.".format(topic_name, topic_info.message_count))
 
             # Extract events to text file
