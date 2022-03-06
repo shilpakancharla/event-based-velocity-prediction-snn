@@ -2,7 +2,7 @@ import os
 import cv2
 import yaml
 import bagpy
-import rosbag
+import tarfile
 import subprocess
 import numpy as np
 import pandas as pd 
@@ -46,7 +46,7 @@ def parse_events(event):
   secs = []
   nsecs = []
   polarity = []
-  tokens = event.splitlines();
+  tokens = event.splitlines()
   for t in tokens:
     if 'x: ' in t:
       temp_t = t
@@ -112,3 +112,14 @@ def convert_rosbag_timestamps(df, time_series):
     new_times.append(new_time)
   # Append the series to the dataframe
   df['New Time'] = np.array(new_times).tolist()
+
+"""
+  Unzip tarfiles from source and extracted files go to a dest folder.
+
+  @param src: location of tarfile
+  @param dest: destination of unzipped files
+"""
+def unzip(src, dest):
+  t_file = tarfile.open(src) # Open file
+  t_file.extractall(dest) # Extract file  
+  t_file.close()

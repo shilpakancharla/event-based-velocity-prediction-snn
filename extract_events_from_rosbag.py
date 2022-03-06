@@ -1,6 +1,5 @@
 import os
 import sys
-import tqdm
 import rospy
 import rosbag
 import shutil
