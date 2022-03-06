@@ -1,15 +1,24 @@
 import os
 import sys
+import rospy
 import rosbag
 import shutil
 import argparse
 from os.path import basename
 
+"""
+    Code adopted from https://github.com/uzh-rpg/rpg_e2vid/blob/master/scripts/extract_events_from_rosbag.py. 
+"""
+
+def timestamp_str(ts):
+  t = ts.secs + ts.nsecs / float (1e9)
+  return '{:.12f}'.format(t)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("bag") # Rosbag file to extract
     parser.add_argument("dest") # Destination for extracted data
-    parser.add_argument("event_topic") # Event topic name
+    parser.add_argument("event_topic") # Event topic name, /cam0/events
     
     args = parser.parse_args()
 
@@ -28,7 +37,7 @@ if __name__ == "__main__":
             # Look for topics available and save number of messages
             total_num_event_msgs = 0
             topics = bag.get_type_and_topic_info().topics
-            for topic_name, topic_infor in topics.iteritems():
+            for topic_name, topic_info in topics.items():
                 total_num_event_msgs = topic_info.message_count
                 print("{} has {} messages.".format(topic_name, topic_info.message_count))
 
