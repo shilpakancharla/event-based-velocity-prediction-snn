@@ -123,3 +123,7 @@ def unzip(src, dest):
   t_file = tarfile.open(src) # Open file
   t_file.extractall(dest) # Extract file  
   t_file.close()
+
+def get_rosbag_info():
+  info_dict = yaml.load(subprocess.Popen(['rosbag', 'info', '--yaml', bag], stdout = subprocess.PIPE).communicate()[0])
+  print(info_dict)
