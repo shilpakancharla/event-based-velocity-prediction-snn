@@ -10,10 +10,6 @@ from os.path import basename
     Code adopted from https://github.com/uzh-rpg/rpg_e2vid/blob/master/scripts/extract_events_from_rosbag.py. 
 """
 
-def timestamp_str(ts):
-  t = ts.secs + ts.nsecs / float (1e9)
-  return '{:.12f}'.format(t)
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("bag") # Rosbag file to extract
@@ -56,7 +52,7 @@ if __name__ == "__main__":
                     event_msg_sum += 1
 
                     for e in msg.events:
-                        events_file.write(timestamp_str(e.ts) + " ")
+                        events_file.write('{:.12f}'.format(e.ts.secs + (e.ts.nsecs / 1e9)) + " ")
                         events_file.write(str(e.x) + " ")
                         events_file.write(str(e.y) + " ")
                         events_file.write(("1 " if e.polarity else "0") + "\n")
