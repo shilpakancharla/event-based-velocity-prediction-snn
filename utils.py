@@ -1,15 +1,22 @@
 import os
+import gc
 import cv2
 import math
 import h5py
 import yaml
 import bagpy
+import rosbag
 import tarfile
 import subprocess
 import numpy as np
 import pandas as pd 
 from bagpy import bagreader
 from cv_bridge import CvBridge
+
+"""
+  Author: Shilpa Kancharla
+  Last updated: March 13, 2022
+"""
 
 """
     Take images in a rosbag file and convert them to .png images.
@@ -219,6 +226,7 @@ def unzip(src, dest):
   t_file.close()
 
 if __name__ == "__main__":
+  gc.collect()
   vicon_motion_bag = "data/2022-03-02-15-37-09_human_movement_with_wand_1.bag"
   event_filepath = "data/out_hw1.txt"
 
