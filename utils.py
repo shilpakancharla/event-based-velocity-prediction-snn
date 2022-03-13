@@ -178,11 +178,11 @@ def populate_gt_df(gt_df, event_df):
       events = align_events_with_gt(event_df, 0.0, gt_df['Time'][ptr])
     else:
       events = align_events_with_gt(event_df, gt_df['Time'][ptr], gt_df['Time'][ptr + 1])
-    event_array_to_add.append(events)
+    event_array_to_add.append(events) # List of group of events, or list of lists of lists
     print("Processed event group " + str(ptr) + " / " + str(len(gt_df)) + ".")
     ptr += 1
   # Concatenate to ground truth dataframe
-  gt_df = pd.concat(event_array_to_add, columns = "Events")
+  gt_df['Events'] = pd.Series(event_array_to_add)
   return gt_df
 
 """
@@ -195,14 +195,14 @@ def populate_gt_df(gt_df, event_df):
 """
 def align_events_with_gt(event_df, start_time, end_time):
   event_arrays = []
-  event_group = event_df.loc[(event_df['t'] >= start_time) & (event_df['t'] < end_time)]
+  event_group = event_df.loc[event_df['t'].between(start_time, end_time)]
   for e in event_group.iterrows(): # e is a tuple
-    event = []
+    event = [] # Represents a single event, list of t, x, y, p
     event.append(e[1][0]) # t
     event.append(e[1][1]) # x
     event.append(e[1][2]) # y
     event.append(e[1][3]) # p
-    event_arrays.append(event)
+    event_arrays.append(event) # All events within this time range, list of lists
   return event_arrays
 
 """
@@ -227,12 +227,13 @@ def unzip(src, dest):
 
 if __name__ == "__main__":
   gc.collect()
-  vicon_motion_bag = "data/2022-03-02-15-37-09_human_movement_with_wand_1.bag"
+  #vicon_motion = "data/2022-03-02-15-37-09_human_movement_with_wand_1.bag"
   event_filepath = "data/out_hw1.txt"
 
-  topic_human_1, df_human_1 = unpack_rosbag(vicon_motion_bag, '/vicon/WAND/WAND')
+  #topic_human_1, df_human_1 = unpack_rosbag(vicon_motion_bag, '/vicon/WAND/WAND')
+  df_human_1 = pd.read_csv('data/vicon-WAND-WAND.csv')
   convert_rosbag_timestamps(df_human_1, df_human_1['header.stamp.secs'], df_human_1["header.stamp.nsecs"])
-  df_human_1_mod = df_human_1[df_human_1['New Time'].between(0, 49)]
+  df_human_1_mod = df_human_1[df_human_1['New Time'].between(0, 30)]
 
   gt_hw1 = create_velocity_gt(df_human_1_mod)
   print("Calculated ground truth velocities. Reading from event files.")
@@ -246,6 +247,6 @@ if __name__ == "__main__":
 
   # Convert ground truth with events dataframe to hdf5 format and save
   print("Saving datframe to .h5 format.")
-  hdf5_filepath = "data/hdf5/human_wand_1.h5"
+  hdf5_filepath = "data/hdf5/human_wand_1_1.h5"
   gt_hw1_with_events.to_hdf(hdf5_filepath, key = 'gt_hw1_with_events', mode = 'w')
   print("Finished saving dataframe to .h5 format.")
