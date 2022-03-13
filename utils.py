@@ -1,5 +1,6 @@
 import os
 import cv2
+import math
 import yaml
 import bagpy
 import tarfile
@@ -102,16 +103,66 @@ def unpack_rosbag(rosbag_path, topic_type):
     Converting times within rosbag to human-readable seconds and aligning it with rosbag dataframe.
 
     @param df: Pandas dataframe of topic information
-    @param time_series: column of time in dataframe
+    @param time_series: column of time in seconds of dataframe
+    @param ns_time_series: column of time in nanoseconds of dataframe
 """
-def convert_rosbag_timestamps(df, time_series):
+def convert_rosbag_timestamps(df, time_series, ns_time_series):
   new_times = []
-  init = df['Time'][0]
-  for time_ in time_series:
-    new_time = time_ - init
+  init_t = df['header.stamp.secs'][0]
+  init_ns = df['header.stamp.nsecs'][0]
+  for time_, time_ns in zip(time_series, ns_time_series):
+    new_time = (time_ - init_t) + ((time_ns - init_ns) / 1e9)
     new_times.append(new_time)
   # Append the series to the dataframe
   df['New Time'] = np.array(new_times).tolist()
+
+"""
+    Calculates the velocity ground truth of rosbag made into a dataframe.
+    
+    @param rosbag converted to dataframe
+    @return dataframe with time and velocity (ground truth)
+"""
+def create_velocity_gt(df):
+  ptr = 0
+  time = []
+  vel = []
+  while ptr < len(df) - 1:
+    delta_time = df['New Time'][ptr + 1] - df['New Time'][ptr]
+    timestamp = (df['New Time'][ptr + 1] + df['New Time'][ptr]) / 2
+    time.append(timestamp)
+    delta_x = df['transform.translation.x'][ptr + 1] - df['transform.translation.x'][ptr]
+    delta_y = df['transform.translation.y'][ptr + 1] - df['transform.translation.y'][ptr]
+    delta_z = df['transform.translation.z'][ptr + 1] - df['transform.translation.z'][ptr]
+    velocity = calculate_velocity(delta_time, delta_x, delta_y, delta_z)
+    vel.append(velocity)
+    ptr += 1
+  d = {'Time': time, 'Velocity': vel}
+  gt_df = pd.DataFrame(d, columns = ['Time', 'Velocity'])
+  return gt_df
+
+"""
+    Calculate the velocity vector ground truth.
+    
+    @param delta_time: difference in time between two timestamps
+    @param delta_x: difference in x position between two timestamps
+    @param delta_y: difference in y position between two timestamps
+    @param delta_z: difference in z position between two timestamps
+    @return velocity vector
+"""
+def calculate_velocity(delta_time, delta_x, delta_y, delta_z):
+  x_component = (delta_x ** 2) / delta_time
+  y_component = (delta_y ** 2) / delta_time 
+  z_component = (delta_z ** 2) / delta_time 
+  return math.sqrt(x_component + y_component + z_component)
+
+"""
+    Prints the rosbag information/metadata.
+    
+    @param bag: path to rosbag file
+"""
+def get_rosbag_info(bag):
+  info_dict = yaml.load(subprocess.Popen(['rosbag', 'info', '--yaml', bag], stdout = subprocess.PIPE).communicate()[0])
+  print(info_dict)
 
 """
   Unzip tarfiles from source and extracted files go to a dest folder.
@@ -123,7 +174,3 @@ def unzip(src, dest):
   t_file = tarfile.open(src) # Open file
   t_file.extractall(dest) # Extract file  
   t_file.close()
-
-def get_rosbag_info():
-  info_dict = yaml.load(subprocess.Popen(['rosbag', 'info', '--yaml', bag], stdout = subprocess.PIPE).communicate()[0])
-  print(info_dict)
