@@ -1,6 +1,7 @@
 import os
 import cv2
 import math
+import h5py
 import yaml
 import bagpy
 import tarfile
@@ -150,27 +151,28 @@ def create_velocity_gt(df):
     @return velocity vector
 """
 def calculate_velocity(delta_time, delta_x, delta_y, delta_z):
-  x_component = (delta_x ** 2) / delta_time
-  y_component = (delta_y ** 2) / delta_time 
-  z_component = (delta_z ** 2) / delta_time 
+  x_component = (delta_x / delta_time) ** 2
+  y_component = (delta_y / delta_time) ** 2 
+  z_component = (delta_z / delta_time) ** 2 
   return math.sqrt(x_component + y_component + z_component)
 
 """
     Populate the ground truth dataframe with the corresponding events. 
     
     @param gt_df: ground truth dataframe with only time and velocity
-    @param event_file: .txt file with (t, x, y, p) event data
+    @param event_df: dataframe with (t, x, y, p) event data
     @return ground truth dataframe with associated events
 """
-def populate_gt_df(gt_df, event_file):
+def populate_gt_df(gt_df, event_df):
   ptr = 0
   event_array_to_add = []
   while ptr < len(gt_df) - 1:
     if ptr == 0:
-      events = align_events_with_gt(event_file, 0.0, gt_df['Time'][ptr])
+      events = align_events_with_gt(event_df, 0.0, gt_df['Time'][ptr])
     else:
-      events = align_events_with_gt(event_file, gt_df['Time'][ptr], gt_df['Time'][ptr + 1])
+      events = align_events_with_gt(event_df, gt_df['Time'][ptr], gt_df['Time'][ptr + 1])
     event_array_to_add.append(events)
+    print("Processed event group " + str(ptr) + " / " + str(len(gt_df)) + ".")
     ptr += 1
   # Concatenate to ground truth dataframe
   gt_df = pd.concat(event_array_to_add, columns = "Events")
@@ -179,29 +181,21 @@ def populate_gt_df(gt_df, event_file):
 """
     Capture the corresponding events in an interval. 
     
-    @param event_file: .txt file with (t, x, y, p) event data
+    @param event_file: dataframe with (t, x, y, p) event data
     @param start_time: start of an event, inclusive
     @param end_time: end of an event, exclusive
     @return array of events associated with a time interval
 """
-def align_events_with_gt(event_file, start_time, end_time):
+def align_events_with_gt(event_df, start_time, end_time):
   event_arrays = []
-  with open(event_file, 'br') as f:
-    next(f) # Skip the first line, contains the sensor size which we already know
-    line = f.readline() 
-    tokens = line.split(b' ')
-    e = []
-    timestamp = float(tokens[0])
-    while timestamp >= start_time and end_time > timestamp:
-      e.append(timestamp) # Seconds
-      e.append(int(tokens[1]))
-      e.append(int(tokens[2]))
-      if int(tokens[3]) == 1:
-        e.append(True)
-      else:
-        e.append(False)
-      event_arrays.append(e)
-    f.close()
+  event_group = event_df.loc[(event_df['t'] >= start_time) & (event_df['t'] < end_time)]
+  for e in event_group.iterrows(): # e is a tuple
+    event = []
+    event.append(e[1][0]) # t
+    event.append(e[1][1]) # x
+    event.append(e[1][2]) # y
+    event.append(e[1][3]) # p
+    event_arrays.append(event)
   return event_arrays
 
 """
@@ -223,3 +217,27 @@ def unzip(src, dest):
   t_file = tarfile.open(src) # Open file
   t_file.extractall(dest) # Extract file  
   t_file.close()
+
+if __name__ == "__main__":
+  vicon_motion_bag = "data/2022-03-02-15-37-09_human_movement_with_wand_1.bag"
+  event_filepath = "data/out_hw1.txt"
+
+  topic_human_1, df_human_1 = unpack_rosbag(vicon_motion_bag, '/vicon/WAND/WAND')
+  convert_rosbag_timestamps(df_human_1, df_human_1['header.stamp.secs'], df_human_1["header.stamp.nsecs"])
+  df_human_1_mod = df_human_1[df_human_1['New Time'].between(0, 49)]
+
+  gt_hw1 = create_velocity_gt(df_human_1_mod)
+  print("Calculated ground truth velocities. Reading from event files.")
+
+  print("Creating event dataframe.")
+  event_hw1_df = pd.read_csv(event_filepath, sep = " ", skiprows = 1, index_col = False, names = ['t', 'x', 'y', 'p'])
+  print("Finished creating event dataframe.")
+
+  gt_hw1_with_events = populate_gt_df(gt_hw1, event_hw1_df)
+  print("Aligned events with velocity ground truth and timestamps.")
+
+  # Convert ground truth with events dataframe to hdf5 format and save
+  print("Saving datframe to .h5 format.")
+  hdf5_filepath = "data/hdf5/human_wand_1.h5"
+  gt_hw1_with_events.to_hdf(hdf5_filepath, key = 'gt_hw1_with_events', mode = 'w')
+  print("Finished saving dataframe to .h5 format.")
