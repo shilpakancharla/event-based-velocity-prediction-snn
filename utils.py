@@ -156,6 +156,55 @@ def calculate_velocity(delta_time, delta_x, delta_y, delta_z):
   return math.sqrt(x_component + y_component + z_component)
 
 """
+    Populate the ground truth dataframe with the corresponding events. 
+    
+    @param gt_df: ground truth dataframe with only time and velocity
+    @param event_file: .txt file with (t, x, y, p) event data
+    @return ground truth dataframe with associated events
+"""
+def populate_gt_df(gt_df, event_file):
+  ptr = 0
+  event_array_to_add = []
+  while ptr < len(gt_df) - 1:
+    if ptr == 0:
+      events = align_events_with_gt(event_file, 0.0, gt_df['Time'][ptr])
+    else:
+      events = align_events_with_gt(event_file, gt_df['Time'][ptr], gt_df['Time'][ptr + 1])
+    event_array_to_add.append(events)
+    ptr += 1
+  # Concatenate to ground truth dataframe
+  gt_df = pd.concat(event_array_to_add, columns = "Events")
+  return gt_df
+
+"""
+    Capture the corresponding events in an interval. 
+    
+    @param event_file: .txt file with (t, x, y, p) event data
+    @param start_time: start of an event, inclusive
+    @param end_time: end of an event, exclusive
+    @return array of events associated with a time interval
+"""
+def align_events_with_gt(event_file, start_time, end_time):
+  event_arrays = []
+  with open(event_file, 'br') as f:
+    next(f) # Skip the first line, contains the sensor size which we already know
+    line = f.readline() 
+    tokens = line.split(b' ')
+    e = []
+    timestamp = float(tokens[0])
+    while timestamp >= start_time and end_time > timestamp:
+      e.append(timestamp) # Seconds
+      e.append(int(tokens[1]))
+      e.append(int(tokens[2]))
+      if int(tokens[3]) == 1:
+        e.append(True)
+      else:
+        e.append(False)
+      event_arrays.append(e)
+    f.close()
+  return event_arrays
+
+"""
     Prints the rosbag information/metadata.
     
     @param bag: path to rosbag file
