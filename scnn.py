@@ -4,6 +4,11 @@ import snntorch as snn
 from snntorch import surrogate
 from torch.utils.data import DataLoader, TensorDataset
 
+"""
+  Author: Shilpa Kancharla
+  Last updated: March 21, 2022
+"""
+
 class SpikingConvolutionalNeuralNetwork(nn.Model):
     def __init__(self, number_inputs, number_hidden, number_outputs):
         super().__init__()

@@ -1,21 +1,22 @@
 import os
 import gc
-import cv2
+import ast
+#import cv2
 import math
-import yaml
-import bagpy
-import rosbag
-import tarfile
-import subprocess
+#import yaml
+#import bagpy
+#import rosbag
+#import tarfile
+#import subprocess
 import numpy as np
 import pandas as pd 
 from tqdm import tqdm
-from bagpy import bagreader
-from cv_bridge import CvBridge
+#from bagpy import bagreader
+#from cv_bridge import CvBridge
 
 """
   Author: Shilpa Kancharla
-  Last updated: March 13, 2022
+  Last updated: March 21, 2022
 """
 
 """
@@ -268,6 +269,38 @@ def read_textfile(textfile_path, start_time, stop_time):
   event_df = pd.DataFrame.from_dict(d)
   return event_df
 
+"""
+  Remove event data points that are empty (look like [[]]).
+  
+  @param csv_file: .csv file contain preprocessed event data
+  @return dataframe with dropped contents
+"""
+def remove_rows_with_empty_events(csv_file):
+  df = pd.read_csv(csv_file, index_col = 0)
+  print("Length of original dataframe: ", len(df))
+  temp_df = df.dropna(how = 'any')
+  print("Length of dataframe after dropping NA values: ", len(temp_df))
+  # Drop the time and other extra columns column
+  temp_df = temp_df.drop('Time', axis = 1)
+  # Drop the row if there are no events - convert string representation to list
+  for index, e in temp_df.iterrows():
+    list_rep_e = convert_to_list(e['Events']) # Event data here in tuple
+    if len(list_rep_e) < 1:
+      temp_df.drop(index, inplace = True) # Drop by index
+  print("Length of dataframe after dropping empty events: ", len(temp_df))
+  print("Shape of new dataframe: ", temp_df.shape)
+  return temp_df.reset_index()
+
+"""
+  Convert a string representation of a list into a list.
+
+  @param string_representation: event string representation read from preprocessed dataframe
+  @return list representation of event data
+"""
+def convert_to_list(string_representation):
+  list_ = ast.literal_eval(string_representation)
+  return list_
+
 if __name__ == "__main__": 
   gc.collect()
 
@@ -278,10 +311,10 @@ if __name__ == "__main__":
   df_hw2_mod = df_hw2[df_hw2['New Time'].between(13, 117)] # Calibrated time
   df_hw2_mod = df_hw2_mod.reset_index() # Reset the index when we aren't starting at values of 0
   
-  # Subtract the first time measurement from all the values 'New Time'
-  df_hw2_mod_sub = df_hw2_mod
-  df_hw2_mod_sub['New Time'] = df_hw2_mod['New Time'] - df_hw2_mod['New Time'].iloc[0]
-  df_hw2_mod_sub = df_hw2_mod_sub[df_hw2_mod_sub['New Time'].between(0, 15)]
+  # Subtract the first time measurement from all the values 'New Time' (recalibration)
+  df_hw2_mod_sub = df_hw2_mod # Make a copy of the old dataframe
+  df_hw2_mod_sub['New Time'] = df_hw2_mod['New Time'] - df_hw2_mod['New Time'].iloc[0] 
+  df_hw2_mod_sub = df_hw2_mod_sub[df_hw2_mod_sub['New Time'].between(60, 75)]
   df_hw2_mod_sub = df_hw2_mod_sub.reset_index()
   print(df_hw2_mod_sub.head())
   print(df_hw2_mod_sub.tail())
@@ -291,20 +324,21 @@ if __name__ == "__main__":
 
   print("Creating event dataframe.")
   #event_hw2_df = pd.read_csv(event_filepath, sep = " ", skiprows = 1, index_col = False, names = ['t', 'x', 'y', 'p'])
-  event_hw2_df = read_textfile(event_filepath, 0, 15)
+  event_hw2_df = read_textfile(event_filepath, 60, 75)
   print("Event dataframe start:")
   print(event_hw2_df.head())
   print("Event dataframe end:")
   print(event_hw2_df.tail())
   print("Finished creating event dataframe.")
 
-  gt_hw2_with_events = populate_gt_df(gt_hw2, event_hw2_df, True)
+  gt_hw2_with_events = populate_gt_df(gt_hw2, event_hw2_df, False)
   print("Aligned events with velocity ground truth and timestamps.")
-  print("Saving dataframe to .csv format to access later.")
+  
   # Save to .csv file
-  gt_hw2_with_events.to_csv('data/processed/GT_HW2_1.csv')
+  print("Saving dataframe to .csv format to access later.")
+  gt_hw2_with_events.to_csv('data/processed/GT_HW2_4.csv')
 
-  # df = pd.read_csv('data/processed/GT_hw2_9.csv')
+  # df = pd.read_csv('data/processed/GT_HW2_1.csv')
   # print(len(df))
   # print(df.head())
   # print(df.tail(10))
