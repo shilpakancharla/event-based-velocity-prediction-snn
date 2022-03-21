@@ -1,5 +1,12 @@
 # Motion Segmentation with Spiking Neural Networks (SNNs)
 
+## Pipeline: Data Generation to Modeling
+
+1. Vicon motion tracking data and video are calibrated to have the same timestamps.
+2. The trimmed video is put through the Event Camera Simulator (ESIM) to generate an event rosbag.
+3. The event rosbag is read and the event data is outputted to a text file using `extract_events_from_rosbag.py`.
+4. Various functions in `utils.py` are used to calculate the ground truth velocities and match them with the event data from the textfile. A .csv file is produced. 
+
 ## Preparing Data with ESIM
 
 The bash script `event_simulation.sh` is provided to automate the event camera simulation, and gather the simulation data by topic from the output rosbag. You need the ESIM software set up, `youtube-dl`, and `ffmpeg` all on your Linux system. The following parameters required to run this bash script are:

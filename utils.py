@@ -2,7 +2,6 @@ import os
 import gc
 import cv2
 import math
-import h5py
 import yaml
 import bagpy
 import rosbag
@@ -10,6 +9,7 @@ import tarfile
 import subprocess
 import numpy as np
 import pandas as pd 
+from tqdm import tqdm
 from bagpy import bagreader
 from cv_bridge import CvBridge
 
@@ -133,7 +133,9 @@ def convert_rosbag_timestamps(df, time_series, ns_time_series):
 def create_velocity_gt(df):
   ptr = 0
   time = []
-  vel = []
+  x = []
+  y = []
+  z = []
   while ptr < len(df) - 1:
     delta_time = df['New Time'][ptr + 1] - df['New Time'][ptr]
     timestamp = (df['New Time'][ptr + 1] + df['New Time'][ptr]) / 2
@@ -141,11 +143,13 @@ def create_velocity_gt(df):
     delta_x = df['transform.translation.x'][ptr + 1] - df['transform.translation.x'][ptr]
     delta_y = df['transform.translation.y'][ptr + 1] - df['transform.translation.y'][ptr]
     delta_z = df['transform.translation.z'][ptr + 1] - df['transform.translation.z'][ptr]
-    velocity = calculate_velocity(delta_time, delta_x, delta_y, delta_z)
-    vel.append(velocity)
+    result = calculate_velocity(delta_time, delta_x, delta_y, delta_z)
+    x.append(result[0])
+    y.append(result[1])
+    z.append(result[2])
     ptr += 1
-  d = {'Time': time, 'Velocity': vel}
-  gt_df = pd.DataFrame(d, columns = ['Time', 'Velocity'])
+  d = {'Time': time, 'Vel_x': x, 'Vel_y': y, 'Vel_z': z}
+  gt_df = pd.DataFrame.from_dict(d)
   return gt_df
 
 """
@@ -158,24 +162,33 @@ def create_velocity_gt(df):
     @return velocity vector
 """
 def calculate_velocity(delta_time, delta_x, delta_y, delta_z):
-  x_component = (delta_x / delta_time) ** 2
-  y_component = (delta_y / delta_time) ** 2 
-  z_component = (delta_z / delta_time) ** 2 
-  return math.sqrt(x_component + y_component + z_component)
+  result = []
+  x_component = (delta_x / delta_time)
+  y_component = (delta_y / delta_time)
+  z_component = (delta_z / delta_time)
+  result.append(x_component)
+  result.append(y_component)
+  result.append(z_component)
+  return result
 
 """
     Populate the ground truth dataframe with the corresponding events. 
     
     @param gt_df: ground truth dataframe with only time and velocity
     @param event_df: dataframe with (t, x, y, p) event data
+    @param start_flag: Boolean that will tell us if we are dealing with the very start of the dataframe
+          and need to process from time 0.0
     @return ground truth dataframe with associated events
 """
-def populate_gt_df(gt_df, event_df):
+def populate_gt_df(gt_df, event_df, start_flag):
   ptr = 0
   event_array_to_add = []
   while ptr < len(gt_df) - 1:
-    if ptr == 0:
-      events = align_events_with_gt(event_df, 0.0, gt_df['Time'][ptr])
+    if start_flag:
+      if ptr == 0:
+        events = align_events_with_gt(event_df, 0.0, gt_df['Time'][ptr])
+      else:
+        events = align_events_with_gt(event_df, gt_df['Time'][ptr], gt_df['Time'][ptr + 1])
     else:
       events = align_events_with_gt(event_df, gt_df['Time'][ptr], gt_df['Time'][ptr + 1])
     event_array_to_add.append(events) # List of group of events, or list of lists of lists
@@ -196,7 +209,7 @@ def populate_gt_df(gt_df, event_df):
 def align_events_with_gt(event_df, start_time, end_time):
   event_arrays = []
   event_group = event_df.loc[event_df['t'].between(start_time, end_time)]
-  for e in event_group.iterrows(): # e is a tuple
+  for e in tqdm(event_group.iterrows()): # e is a tuple
     event = [] # Represents a single event, list of t, x, y, p
     event.append(e[1][0]) # t
     event.append(e[1][1]) # x
@@ -225,28 +238,73 @@ def unzip(src, dest):
   t_file.extractall(dest) # Extract file  
   t_file.close()
 
-if __name__ == "__main__":
+"""
+  Read only the relevant section of a large .txt file.
+
+  @param textfile_path: location of large text file
+  @param start_time: start time of section of file, inclusive
+  @param stop_time: end time of section of file, exclusive
+  @return event dataframe of a time period
+"""
+def read_textfile(textfile_path, start_time, stop_time):
+  t = []
+  x = []
+  y = []
+  p = []
+  with open(textfile_path) as f:
+    next(f) # Skip the first line because it has sensor information
+    for i, line in enumerate(f):
+      tokens = line.split(' ') # Split the line into t x y p
+      if start_time <= float(tokens[0]) < stop_time:
+        t.append(float(tokens[0])) 
+        x.append(int(tokens[1]))
+        y.append(int(tokens[2]))
+        p.append(int(tokens[3])) 
+      elif float(tokens[0]) >= stop_time:
+        break
+      else:
+        pass
+  d = {'t': t, 'x': x, 'y': y, 'p': p}
+  event_df = pd.DataFrame.from_dict(d)
+  return event_df
+
+if __name__ == "__main__": 
   gc.collect()
-  #vicon_motion = "data/2022-03-02-15-37-09_human_movement_with_wand_1.bag"
-  event_filepath = "data/out_hw1.txt"
 
-  #topic_human_1, df_human_1 = unpack_rosbag(vicon_motion_bag, '/vicon/WAND/WAND')
-  df_human_1 = pd.read_csv('data/vicon-WAND-WAND.csv')
-  convert_rosbag_timestamps(df_human_1, df_human_1['header.stamp.secs'], df_human_1["header.stamp.nsecs"])
-  df_human_1_mod = df_human_1[df_human_1['New Time'].between(0, 30)]
-
-  gt_hw1 = create_velocity_gt(df_human_1_mod)
+  event_filepath = "data/out_hw2.txt"
+  df_hw2 = pd.read_csv('data/vicon-WAND-WAND_2.csv')
+  
+  convert_rosbag_timestamps(df_hw2, df_hw2['header.stamp.secs'], df_hw2["header.stamp.nsecs"])
+  df_hw2_mod = df_hw2[df_hw2['New Time'].between(13, 117)] # Calibrated time
+  df_hw2_mod = df_hw2_mod.reset_index() # Reset the index when we aren't starting at values of 0
+  
+  # Subtract the first time measurement from all the values 'New Time'
+  df_hw2_mod_sub = df_hw2_mod
+  df_hw2_mod_sub['New Time'] = df_hw2_mod['New Time'] - df_hw2_mod['New Time'].iloc[0]
+  df_hw2_mod_sub = df_hw2_mod_sub[df_hw2_mod_sub['New Time'].between(0, 15)]
+  df_hw2_mod_sub = df_hw2_mod_sub.reset_index()
+  print(df_hw2_mod_sub.head())
+  print(df_hw2_mod_sub.tail())
+  gt_hw2 = create_velocity_gt(df_hw2_mod_sub)
+  print(gt_hw2.head())
   print("Calculated ground truth velocities. Reading from event files.")
 
   print("Creating event dataframe.")
-  event_hw1_df = pd.read_csv(event_filepath, sep = " ", skiprows = 1, index_col = False, names = ['t', 'x', 'y', 'p'])
+  #event_hw2_df = pd.read_csv(event_filepath, sep = " ", skiprows = 1, index_col = False, names = ['t', 'x', 'y', 'p'])
+  event_hw2_df = read_textfile(event_filepath, 0, 15)
+  print("Event dataframe start:")
+  print(event_hw2_df.head())
+  print("Event dataframe end:")
+  print(event_hw2_df.tail())
   print("Finished creating event dataframe.")
 
-  gt_hw1_with_events = populate_gt_df(gt_hw1, event_hw1_df)
+  gt_hw2_with_events = populate_gt_df(gt_hw2, event_hw2_df, True)
   print("Aligned events with velocity ground truth and timestamps.")
+  print("Saving dataframe to .csv format to access later.")
+  # Save to .csv file
+  gt_hw2_with_events.to_csv('data/processed/GT_HW2_1.csv')
 
-  # Convert ground truth with events dataframe to hdf5 format and save
-  print("Saving datframe to .h5 format.")
-  hdf5_filepath = "data/hdf5/human_wand_1_1.h5"
-  gt_hw1_with_events.to_hdf(hdf5_filepath, key = 'gt_hw1_with_events', mode = 'w')
-  print("Finished saving dataframe to .h5 format.")
+  # df = pd.read_csv('data/processed/GT_hw2_9.csv')
+  # print(len(df))
+  # print(df.head())
+  # print(df.tail(10))

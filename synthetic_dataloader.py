@@ -1,9 +1,8 @@
-import h5py
 import numpy as np 
+import pandas as pd
 from tonic.datasets import Dataset
 
-TRAINING_PATH = ""
-TEST_PATH = ""
+DATA_PATH = "data/processed/"
 
 class SyntheticRecording(Dataset):
     sensor_size = (1920, 1080)
@@ -20,13 +19,10 @@ class SyntheticRecording(Dataset):
             self.filename = TEST_PATH
 
     def __getitem__(self, index):
-        file = h5py.File(self.filename, 'r') # Read contents from .h5 file
+        # Read contents from .csv files
         events = None
         target = None
-        if self.transform is not None:
-            events = self.transform(events, self.sensor_size, self.ordering)
-        if self.target_transform is not None:
-            target = self.target_transform(target)
+        
         return events, target
 
     def __len__(self):
