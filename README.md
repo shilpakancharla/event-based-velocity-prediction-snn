@@ -1,4 +1,4 @@
-# Motion Segmentation with Spiking Neural Networks (SNNs)
+# Event-Based Velocity Prediction with Spiking Neural Networks (SNNs)
 
 ## Pipeline: Data Generation to Modeling
 
