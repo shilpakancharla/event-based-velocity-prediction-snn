@@ -50,7 +50,7 @@ def plot_tonic(timestamp, x, y, polarity, denoise_flag):
     frame_transform = transforms.ToFrame(sensor_size = sensor_size, time_window = 200000)
     frames = frame_transform(events)
     if denoise_flag:
-        denoise_transform = tonic.transforms.Denoise(filter_time=10000)
+        denoise_transform = tonic.transforms.Denoise(filter_time = 10000)
         events_denoised = denoise_transform(events)
         frames_denoised = frame_transform(events_denoised)
         return frames_denoised 

@@ -314,7 +314,7 @@ if __name__ == "__main__":
   # Subtract the first time measurement from all the values 'New Time' (recalibration)
   df_hw2_mod_sub = df_hw2_mod # Make a copy of the old dataframe
   df_hw2_mod_sub['New Time'] = df_hw2_mod['New Time'] - df_hw2_mod['New Time'].iloc[0] 
-  df_hw2_mod_sub = df_hw2_mod_sub[df_hw2_mod_sub['New Time'].between(60, 75)]
+  df_hw2_mod_sub = df_hw2_mod_sub[df_hw2_mod_sub['New Time'].between(75, 90)]
   df_hw2_mod_sub = df_hw2_mod_sub.reset_index()
   print(df_hw2_mod_sub.head())
   print(df_hw2_mod_sub.tail())
@@ -324,7 +324,7 @@ if __name__ == "__main__":
 
   print("Creating event dataframe.")
   #event_hw2_df = pd.read_csv(event_filepath, sep = " ", skiprows = 1, index_col = False, names = ['t', 'x', 'y', 'p'])
-  event_hw2_df = read_textfile(event_filepath, 60, 75)
+  event_hw2_df = read_textfile(event_filepath, 75, 90)
   print("Event dataframe start:")
   print(event_hw2_df.head())
   print("Event dataframe end:")
@@ -336,7 +336,7 @@ if __name__ == "__main__":
   
   # Save to .csv file
   print("Saving dataframe to .csv format to access later.")
-  gt_hw2_with_events.to_csv('data/processed/GT_HW2_4.csv')
+  gt_hw2_with_events.to_csv('data/processed/GT_HW2_6.csv')
 
   # df = pd.read_csv('data/processed/GT_HW2_1.csv')
   # print(len(df))
