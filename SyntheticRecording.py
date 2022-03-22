@@ -41,12 +41,24 @@ class SyntheticRecording(tonic.Dataset):
       # Denoise removes isolated, one-off events
       frame_transform = transforms.Compose([transforms.Denoise(filter_time = 10000), 
                                             transforms.ToFrame(sensor_size = self.sensor_size, 
-                                                         time_window = 1000)])
+                                                         time_window = 1000)
+                                            ])
       transformed_frames = frame_transform(events)
-      sample = {'events': transformed_frames, 
-                'vel_x': self.target.loc[index][0],
-                'vel_y': self.target.loc[index][1],
-                'vel_z': self.target.loc[index][2]}
+      vel_x = np.array(self.target.loc[index][0]).astype('float')
+      vel_y = np.array(self.target.loc[index][1]).astype('float')
+      vel_z = np.array(self.target.loc[index][2]).astype('float')
+      
+      vel_xyz = []
+      tensor_vel_x = torch.from_numpy(vel_x)
+      vel_xyz.append(tensor_vel_x)
+      tensor_vel_y = torch.from_numpy(vel_y)
+      vel_xyz.append(tensor_vel_y)
+      tensor_vel_z = torch.from_numpy(vel_z)
+      vel_xyz.append(tensor_vel_z)
+      
+      # Map-style dataset
+      sample = {'frames': torch.tensor(transformed_frames),
+                'vel_xyz': torch.FloatTensor(vel_xyz)}
       return sample
 
     """
