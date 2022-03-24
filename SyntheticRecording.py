@@ -6,7 +6,7 @@ from tonic.transforms as transforms
 
 """
   Author: Shilpa Kancharla
-  Last updated: March 22, 2022
+  Last updated: March 24, 2022
 """
 
 class SyntheticRecording(tonic.Dataset):
@@ -44,22 +44,17 @@ class SyntheticRecording(tonic.Dataset):
                                                          time_window = 1000)
                                             ])
       transformed_frames = frame_transform(events)
-      vel_x = np.array(self.target.loc[index][0]).astype('float')
-      vel_y = np.array(self.target.loc[index][1]).astype('float')
-      vel_z = np.array(self.target.loc[index][2]).astype('float')
-      
       vel_xyz = []
-      tensor_vel_x = torch.from_numpy(vel_x)
-      vel_xyz.append(tensor_vel_x)
-      tensor_vel_y = torch.from_numpy(vel_y)
-      vel_xyz.append(tensor_vel_y)
-      tensor_vel_z = torch.from_numpy(vel_z)
-      vel_xyz.append(tensor_vel_z)
-      
-      # Map-style dataset
-      sample = {'frames': torch.tensor(transformed_frames),
-                'vel_xyz': torch.FloatTensor(vel_xyz)}
-      return sample
+      vel_x = self.target.loc[index][0]
+      vel_xyz.append(vel_x)
+      vel_y = self.target.loc[index][1]
+      vel_xyz.append(vel_y)
+      vel_z = self.target.loc[index][2]
+      vel_xyz.append(vel_z)
+
+      frames = torch.tensor(transformed_frames)
+      vel = torch.tensor(vel_xyz)
+      return frames, vel
 
     """
         Returns the size of the dataset.
