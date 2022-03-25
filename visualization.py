@@ -63,3 +63,16 @@ def plot_frames(frames):
         axis.imshow(frame[1] - frame[0])
         axis.axis("off")
     #plt.tight_layout()
+    
+def plot_rmse_history(vel_x_rmse_history, vel_y_rmse_history, vel_z_rmse_history, loss_history):
+  fig, axs = plt.subplots(2, 2, figsize = (15, 15))
+  fig.suptitle('Vector Component RMSE Loss Histories')
+  axs[0][0].set_title('Vel X RMSE')
+  axs[0][0].plot(vel_x_rmse_history)
+  axs[0][1].set_title('Vel Y RMSE')
+  axs[0][1].plot(vel_y_rmse_history)
+  axs[1][0].set_title('Vel Z RMSE')
+  axs[1][0].plot(vel_z_rmse_history)
+  axs[1][1].set_title('Total RMSE')
+  axs[1][1].plot(loss_history)
+  plt.show()
