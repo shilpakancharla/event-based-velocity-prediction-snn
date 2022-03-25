@@ -48,6 +48,8 @@ youtube-dl <video URL> -o <name>
 ffmpeg -i <video name>.mkv -ss <start timestamp> -t <end timestamp> -async 1 -strict -2 <cut video name>.mkv
 ```
 
+Option to zoom in twice in case there are unecessary contents in the video: `ffmpeg -i box1.mkv -ss 00:00:08 -t 00:01:22 -async 1 -strict -2 -vf "scale=2*iw:-1, crop=iw/2:ih/2" box1_cut.mkv`
+
 ### Pre-process video for ESIM
 
 1. Export video to `frames` folder:
