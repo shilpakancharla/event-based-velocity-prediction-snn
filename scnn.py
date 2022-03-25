@@ -55,26 +55,30 @@ class MultiOutputSNN(nn.Module):
       
     return vel_x, vel_y, vel_z
 
-def training_loop(net, dataloader, optimizer, loss_fn):
+def training_loop(net, train_loader, test_loader, optimizer, loss_fn):
   num_epochs = 1
-  # Store loss and accuracy history for future plotting
+  
+  # Store loss history for future plotting
   loss_history_x = []
   loss_history_y = []
   loss_history_z = []
   loss_history = []
+  test_loss_history_x = []
+  test_loss_history_y = []
+  test_loss_history_z = []
+  test_loss_history = []
   loss = 0
+  test_loss = 0 
+  history = dict()
+  counter = 0
 
   for epoch in range(num_epochs):
-    batch = iter(dataloader)
-    counter = 0
-    # Minibatch training loop
-    for data, targets in batch:
+    batch = iter(train_loader)
+    for data, targets in batch: # Training loop
       data = data.cuda()
       targets = targets.cuda()
-
-      # Forward pass
-      net.train()
-      vel_x, vel_y, vel_z = net(data)
+      net.train() # Forward pass
+      vel_x, vel_y, vel_z = net(data) # Predictions
       loss_val_x = torch.sqrt(loss_fn(vel_x[0][0].float(), targets[0][0].float()))
       loss_history_x.append(loss_val_x.item())
       loss_val_y = torch.sqrt(loss_fn(vel_y[0][0].float(), targets[0][1].float()))
@@ -90,20 +94,50 @@ def training_loop(net, dataloader, optimizer, loss_fn):
       loss.backward() 
       optimizer.step()
 
-      if counter % 10 == 0:
-        print(f"Iteration {counter}: vel_x RMSE: {loss_val_x}, vel_y RMSE: {loss_val_y}, vel_z RMSE: {loss_val_z}, total RMSE: {loss}")
-      counter += 1
+      with torch.no_grad(): # Test loop
+        net.eval() # Test forward pass
+        test_data, test_targets = next(iter(test_loader))
+        test_data = test_data.cuda()
+        test_targets = test_targets.cuda()
+        test_vel_x, test_vel_y, test_vel_z = net(test_data) # Predictions
+        test_loss_val_x = torch.sqrt(loss_fn(test_vel_x[0][0].float(), test_targets[0][0].float()))
+        test_loss_history_x.append(test_loss_val_x.item())
+        test_loss_val_y = torch.sqrt(loss_fn(test_vel_y[0][0].float(), test_targets[0][1].float()))
+        test_loss_history_y.append(test_loss_val_y.item())
+        test_loss_val_z = torch.sqrt(loss_fn(test_vel_z[0][0].float(), test_targets[0][2].float()))
+        test_loss_history_z.append(test_loss_val_z.item())
 
-    return loss_history_x, loss_history_y, loss_history_z, loss_history
+        test_loss = test_loss_val_x + test_loss_val_y + test_loss_val_z
+        test_loss_history.append(test_loss.item())
+
+        if counter % 10 == 0: # Print every 10 results
+          print(f"Training Iteration {counter}: vel_x RMSE: {loss_val_x}, vel_y RMSE: {loss_val_y}, vel_z RMSE: {loss_val_z}, total RMSE: {loss}")
+          print(f"Test Iteration {counter}: vel_x RMSE: {test_loss_val_x}, vel_y RMSE: {test_loss_val_y}, vel_z RMSE: {test_loss_val_z}, total RMSE: {test_loss}\n")
+        counter += 1
+
+  history['Training Velocity X RMSE'] = loss_history_x
+  history['Training Velocity Y RMSE'] = loss_history_y
+  history['Training Velocity Z RMSE'] = loss_history_z
+  history['Training Total RMSE'] = loss_history
+  history['Test Velocity X RMSE'] = test_loss_history_x
+  history['Test Velocity Y RMSE'] = test_loss_history_y
+  history['Test Velocity Z RMSE'] = test_loss_history_z
+  history['Test Total RMSE'] = test_loss_history
+  
+  return history
   
 if __name__ == "__main__":
   gc.collect()
   torch.cuda.empty_cache()
   sample_csv = SRC + 'GT_HW1_1_DROPPED.csv'
   datasets = SyntheticRecording(sample_csv) # Create a PyTorch dataset object
-  # Create DataLoader objection
-  dataloader = DataLoader(datasets, batch_size = 1, shuffle = True, 
-                          collate_fn = PadMultiOutputTensor(), 
+  train_dataset, test_dataset = train_val_dataset(datasets) # Train/test split
+  # Create DataLoader objects
+  train_loader = DataLoader(train_dataset, batch_size = 1, shuffle = True,
+                            collate_fn = PadMultiOutputTensor(),
+                            num_workers = 2, drop_last = False)
+  test_loader = DataLoader(test_dataset, batch_size = 1, shuffle = True,
+                          collate_fn = PadMultiOutputTensor(),
                           num_workers = 2, drop_last = False)
   
   # Neuron and simulation parameters
@@ -114,4 +148,4 @@ if __name__ == "__main__":
   # total loss = lx + ly + lz
   loss_fn = nn.MSELoss()
   
-  loss_history_x, loss_history_y, loss_history_z, loss_history = training_loop(net, dataloader, optimizer, loss_fn)
+  history = training_loop(net, train_loader, test_loader, optimizer, loss_fn)

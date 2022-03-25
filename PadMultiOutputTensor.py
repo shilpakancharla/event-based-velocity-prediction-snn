@@ -1,3 +1,5 @@
+import torch
+
 """
   Custom collation function for event-based multi-output problems. 
   Adapted from https://github.com/neuromorphs/tonic/blob/develop/tonic/collation.py.
@@ -20,7 +22,5 @@ class PadMultiOutputTensor:
                        torch.zeros(max_length - sample.shape[0], *sample.shape[1:]),)))
         targets_output.append(target)
 
-    return (
-        torch.stack(samples_output, 0 if self.batch_first else 1),
-        torch.stack(targets_output),
-    )
+    return (torch.stack(samples_output, 0 if self.batch_first else 1),
+            torch.stack(targets_output),)

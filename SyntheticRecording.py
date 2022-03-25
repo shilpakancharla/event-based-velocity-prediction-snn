@@ -2,7 +2,9 @@ import ast
 import tonic
 import numpy as np 
 import pandas as pd
-from tonic.transforms as transforms
+from torch.utils.data import Subset
+import tonic.transforms as transforms
+from sklearn.model_selection import train_test_split
 
 """
   Author: Shilpa Kancharla
@@ -61,3 +63,9 @@ class SyntheticRecording(tonic.Dataset):
     """
     def __len__(self):
         return self.target.shape[0]
+
+def train_val_dataset(dataset, val_split = 0.25):
+  train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size = val_split)
+  train_dataset = Subset(dataset, train_idx)
+  test_dataset = Subset(dataset, val_idx)
+  return train_datset, test_dataset
