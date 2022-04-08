@@ -45,6 +45,7 @@ def create_sliding_window(event_df, df_name, dest, timesteps = 5, window_size = 
     # Give the image a name and save it
     img_name = '0000' + str(ptr) + '.png'
     plt.savefig(dest + img_name)
+    plt.clf()
     print("Saved image " + img_name + ".")
     # Save the velocity information of the image name in a .csv file
     vel_xyz[img_name] = vel_series.loc[ptr + timesteps - window_size].tolist()
