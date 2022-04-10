@@ -1,5 +1,8 @@
 # Event-Based Velocity Prediction with Spiking Neural Networks (SNNs)
 
+## Abstract 
+Neuromorphic computing uses very-large-scale integration (VLSI) systems with the goal of replicating neurobiological structures and signal conductance mechanisms. Neuromorphic processors can run spiking neural networks (SNNs) that mimic how biological neurons function, particularly by emulating the emission of electrical spikes. A key benefit of using SNNs and neuromorphic technology is the ability to optimize the size, weight, and power consumed in a system. SNNs can be trained and employed in various robotic and computer vision applications, with one such novel application being velocity prediction using event-based data. Data from this experiment is recorded and simulated as event camera data using ESIM. Vicon motion tracking data provides the ground truth position and time values, from which the velocity is calculated at particular timesteps. The SNN developed in this work regresses the velocity vector, consisting of the x, y, and z-components, while using the event data as the input features, or the list of events associated with each velocity measurement. With the use of the novel dataset created, three SNN models were trained while the model that minimized the loss was further validated by omitting a subset of data used in the original training. The average loss, in terms of RMSE, on the test set after using the trained model on the omitted subset of data was roughly 0.000359. Through this work, it is shown that it is possible to train an SNN on event data and the associated velocity measurements in order to predict the velocity.
+
 ## Pipeline: Data Generation to Modeling
 
 1. Vicon motion tracking data and video are calibrated to have the same timestamps.
