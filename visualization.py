@@ -1,11 +1,15 @@
 import tonic 
+import seaborn as sns
+import plotly.express as px
 import matplotlib.pyplot as plt 
+import plotly.graph_objects as go
 import tonic.transforms as transforms
 from mpl_toolkits import mplot3d
+from plotly.subplots import make_subplots
 
 """
   Author: Shilpa Kancharla
-  Last updated: March 21, 2022
+  Last updated: April 14, 2022
 """
 
 def parse_lambda_data(event_file, tonic_flag):
@@ -85,3 +89,34 @@ def plot_rmse_history(vel_x_rmse_history, vel_y_rmse_history, vel_z_rmse_history
   axs[1][1].set_title('Total RMSE')
   axs[1][1].plot(loss_history)
   plt.show()
+  
+def create_velocity_boxplot(df_list):
+  cdf = pd.concat(df_list).drop(['index', 'Events'], axis = 1)
+  cdf = cdf.rename(columns={"Vel_x": "x", "Vel_y": "y", "Vel_z": "z"})
+  mdf = pd.melt(cdf, id_vars = 'Category', var_name = "Velocity Component", value_name = 'Velocity (m/s)')
+  fig = go.Figure()
+
+  fig = make_subplots(
+      rows = 3, cols = 2, 
+      subplot_titles=("Human with Wand 1", "Human with Wand 2", "Lambda Aerial Robot", 
+                      "Box Thrown Around", "Box Sliding on Floor")
+  )
+
+  fig = px.box(mdf, x = "Category", y = "Velocity (m/s)", color = "Velocity Component",
+               title = "Velocity distributions amongst all data subsets",
+               width = 1050, height = 1000, boxmode = "group")
+
+  fig.update_layout(boxgroupgap = 0.2, 
+                    boxgap = 0,
+                    font_size = 20,
+                    legend = dict(yanchor = "top", y = 0.99, xanchor = "left", x = 0.01))
+
+  for t in mdf['Category'].unique():
+    fig.add_annotation(x = t,
+                       y = mdf[mdf['Category'] == t]['Velocity (m/s)'].max(),
+                       text = "No. of points: " + str(int(len(mdf[mdf['Category'] == t]) / 3)),
+                       yshift = 25,
+                       showarrow = False) 
+
+  fig.show()
+  fig.write_image(HOME + "fig1.png", engine = "kaleido")
