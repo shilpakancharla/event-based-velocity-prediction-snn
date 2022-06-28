@@ -9,6 +9,7 @@ This work provides the following contributions:
 
 * An approach to how to set up a spiking neural network to predict numeric values, as opposed to classifying data points, using regression. 
 * An approach to set up a neural network with convolutional and recurrent features with event-based data.
+* The open-source code and dataset, found here https://zenodo.org/record/6762053#.YrtfPjfMITs. 
 * Methods to preprocess event-based data and create a custom dataset using the frameworks based in PyTorch, such as `snntorch` and `Tonic`.
 
 ## Pipeline: Data Generation to Modeling
